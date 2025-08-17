@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>會員專區</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Microsoft JhengHei', sans-serif;
+      background: linear-gradient(135deg, #fff4e6, #bac2e1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 400px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #66b;
+      margin-bottom: 24px;
+    }
+
+    label {
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: block;
+      color: #333;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+
+    input:focus {
+      border-color: #66b;
+      outline: none;
+    }
+
+    input[disabled] {
+      background: #f5f5f5;
+      color: #aaa;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #66b, #66b);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+      margin-bottom: 10px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .delete-button {
+      background: linear-gradient(135deg, #dc3545, #c82333);
+      margin-top: 20px;
+    }
+
+    .delete-button:hover {
+      background: linear-gradient(135deg, #c82333, #bd2130);
+    }
+
+    .note {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      margin-top: 12px;
+    }
+
+    .login-link {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    .login-link a {
+      color: #66b;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .login-link a:hover {
+      text-decoration: underline;
+      color: #66b;
+    }
+
+    .loading {
+      text-align: center;
+      color: #66b;
+      font-size: 16px;
+    }
+
+    .error {
+      background: #ffe6e6;
+      color: #cc0000;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .success {
+      background: #e6ffe6;
+      color: #006600;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    /* 確認刪除對話框樣式 */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+      background-color: white;
+      margin: 15% auto;
+      padding: 30px;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal h3 {
+      color: #dc3545;
+      margin-bottom: 20px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .modal-buttons button {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .cancel-button {
+      background: #6c757d;
+    }
+
+    .cancel-button:hover {
+      background: #5a6268;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>會員資料編輯</h2>
+    
+    <!-- 載入中顯示 -->
+    <div id="loading" class="loading">載入中...</div>
+    
+    <!-- 錯誤訊息 -->
+    <div id="errorMessage" class="error" style="display: none;"></div>
+    
+    <!-- 成功訊息 -->
+    <div id="successMessage" class="success" style="display: none;"></div>
+    
+    <!-- 表單 -->
+    <form id="memberForm" style="display: none;">
+      <label for="name">姓名</label>
+      <input id="name" type="name" name="name">
+
+      <label for="password">密碼</label>
+      <input id="password" type="password" name="password">
+
+      <label for="phone">電話</label>
+      <input id="phone" type="phone" name="phone">
+
+      <button type="submit" id="saveButton">儲存變更</button>
+      
+      <button type="button" id="deleteButton" class="delete-button">🗑️ 刪除會員帳號</button>
+    </form>
+    
+    <div class="note">若有問題請聯絡客服</div>
+    <div class="login-link">
+      已有帳號？
+      <a href="index.html">返回登入</a>
+    </div>
+  </div>
+
+  <!-- 刪除確認對話框 -->
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <h3>⚠️ 警告</h3>
+      <p>您確定要刪除會員帳號嗎？</p>
+      <p style="color: #dc3545; font-weight: bold;">此操作無法復原！</p>
+      <p>刪除後將失去所有會員資料和歷史記錄。</p>
+      
+      <div class="modal-buttons">
+        <button type="button" id="cancelDelete" class="cancel-button">取消</button>
+        <button type="button" id="confirmDelete" class="delete-button">確認刪除</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 全域變數
+    let currentMemberData = null;
+
+    // 從URL參數或session中獲取會員ID
+    function getMemberId() {
+      // 方法1: 從URL參數獲取
+      const urlParams = new URLSearchParams(window.location.search);
+      const memberPhoneFromUrl = urlParams.get('phone');
+      
+      // 方法2: 從sessionStorage獲取（登入後儲存）
+      const memberPhoneFromSession = sessionStorage.getItem('phone');
+      
+      // 方法3: 從localStorage獲取
+      const memberPhoneFromLocal = localStorage.getItem('phone');
+      
+      // 返回找到的會員電話，優先順序：URL > Session > Local
+      return memberPhoneFromUrl || memberPhoneFromSession || memberPhoneFromLocal;
+    }
+
+    // 載入會員資料
+    async function loadMemberData() {
+      const memberPhone = getMemberId();
+      
+      if (!memberPhone) {
+        showError('未找到會員電話，請重新登入');
+        return;
+      }
+
+      try {
+        // 這裡替換成您的API端點
+        const response = await fetch(`http://localhost:3000/api/member/${memberPhone}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            // 如果需要身份驗證，加入token
+            // 'Authorization': 'Bearer ' + getAuthToken()
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const memberData = await response.json();
+        currentMemberData = memberData;
+        
+        // 填入表單資料
+        populateForm(memberData);
+        
+        // 隱藏載入中，顯示表單
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('memberForm').style.display = 'block';
+        
+      } catch (error) {
+        console.error('載入會員資料失敗:', error);
+        showError('載入會員資料失敗，請稍後再試');
+      }
+    }
+
+    // 填入表單資料
+    function populateForm(memberData) {
+      document.getElementById('name').value = memberData.name || '';
+      document.getElementById('phone').value = memberData.phone || '';
+      // 密碼保持空白
+      document.getElementById('password').value = '';
+    }
+
+    // 儲存會員資料
+    async function saveMemberData(formData) {
+      const memberPhone = getMemberId();
+      
+      try {
+        const response = await fetch(`http://localhost:3000/api/member/${memberPhone}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            // 如果需要身份驗證，加入token
+            // 'Authorization': 'Bearer ' + getAuthToken()
+          },
+          body: JSON.stringify(formData)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        showSuccess('資料更新成功！');
+        
+        // 更新當前資料
+        currentMemberData = { ...currentMemberData, ...formData };
+        
+        return result;
+        
+      } catch (error) {
+        console.error('儲存會員資料失敗:', error);
+        showError('儲存失敗，請稍後再試');
+        throw error;
+      }
+    }
+
+    // 刪除會員帳號
+    async function deleteMemberAccount() {
+      const memberPhone = getMemberId();
+      
+      try {
+        const response = await fetch(`http://localhost:3000/api/member/${memberPhone}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            // 如果需要身份驗證，加入token
+            // 'Authorization': 'Bearer ' + getAuthToken()
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        // 清除所有儲存的會員資料
+        sessionStorage.removeItem('phone');
+        localStorage.removeItem('phone');
+        sessionStorage.removeItem('authToken');
+        localStorage.removeItem('authToken');
+        
+        alert('會員帳號已成功刪除');
+        
+        // 重導向到登入頁面或首頁
+        window.location.href = 'index.html';
+        
+      } catch (error) {
+        console.error('刪除會員帳號失敗:', error);
+        showError('刪除失敗，請稍後再試');
+        throw error;
+      }
+    }
+
+    // 顯示錯誤訊息
+    function showError(message) {
+      const errorDiv = document.getElementById('errorMessage');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+      document.getElementById('successMessage').style.display = 'none';
+      document.getElementById('loading').style.display = 'none';
+    }
+
+    // 顯示成功訊息
+    function showSuccess(message) {
+      const successDiv = document.getElementById('successMessage');
+      successDiv.textContent = message;
+      successDiv.style.display = 'block';
+      document.getElementById('errorMessage').style.display = 'none';
+      
+      // 3秒後自動隱藏成功訊息
+      setTimeout(() => {
+        successDiv.style.display = 'none';
+      }, 3000);
+    }
+
+    // 顯示刪除確認對話框
+    function showDeleteModal() {
+      document.getElementById('deleteModal').style.display = 'block';
+    }
+
+    // 隱藏刪除確認對話框
+    function hideDeleteModal() {
+      document.getElementById('deleteModal').style.display = 'none';
+    }// 表單提交處理
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('memberForm');
+      const saveButton = document.getElementById('saveButton');
+      const deleteButton = document.getElementById('deleteButton');
+      const deleteModal = document.getElementById('deleteModal');
+      const cancelDelete = document.getElementById('cancelDelete');
+      const confirmDelete = document.getElementById('confirmDelete');
+      
+      // 儲存表單處理
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // 禁用按鈕防止重複提交
+        saveButton.disabled = true;
+        saveButton.textContent = '儲存中...';
+        
+        try {
+          // 收集表單資料
+          const formData = {
+            name: document.getElementById('name').value.trim(),
+            phone: document.getElementById('phone').value.trim()
+          };
+          
+          // 如果密碼不為空，加入密碼
+          const password = document.getElementById('password').value;
+          if (password) {
+            formData.password = password;
+          }
+          
+          // 基本驗證
+          if (!formData.name) {
+            showError('姓名不能為空');
+            return;
+          }
+          
+          if (!formData.password) {
+            showError('密碼不能為空');
+            return;
+          }
+          
+          // 儲存資料
+          await saveMemberData(formData);
+          
+          // 清空密碼欄位
+          document.getElementById('password').value = '';
+          
+        } catch (error) {
+          // 錯誤已在saveMemberData中處理
+        } finally {
+          // 恢復按鈕狀態
+          saveButton.disabled = false;
+          saveButton.textContent = '儲存變更';
+        }
+      });
+
+      // 刪除按鈕點擊事件
+      deleteButton.addEventListener('click', function() {
+        showDeleteModal();
+      });
+
+      // 取消刪除
+      cancelDelete.addEventListener('click', function() {
+        hideDeleteModal();
+      });
+
+      // 確認刪除
+      confirmDelete.addEventListener('click', async function() {
+        confirmDelete.disabled = true;
+        confirmDelete.textContent = '刪除中...';
+        
+        try {
+          await deleteMemberAccount();
+        } catch (error) {
+          // 錯誤已在deleteMemberAccount中處理
+        } finally {
+          confirmDelete.disabled = false;
+          confirmDelete.textContent = '確認刪除';
+          hideDeleteModal();
+        }
+      });
+
+      // 點擊對話框外部關閉
+      deleteModal.addEventListener('click', function(e) {
+        if (e.target === deleteModal) {
+          hideDeleteModal();
+        }
+      });
+      
+      // 載入會員資料
+      loadMemberData();
+    });
+
+    // 獲取認證token（如果需要）
+    function getAuthToken() {
+      return sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+    }
+  </script>
+</body>
+</html>
